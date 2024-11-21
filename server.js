@@ -12,9 +12,14 @@ require("dotenv").config();
 const app = express();
 app.use(express.json());
 
+const originURL = {
+  local: "http://localhost:3000",
+  dev: "https://food-recipes-self.vercel.app",
+};
+
 app.use(
   cors({
-    origin: "https://food-recipes-self.vercel.app",
+    origin: originURL.local,
     methods: ["GET", "POST", "DELETE", "PUT"],
     credentials: true,
   })
@@ -34,6 +39,7 @@ app.use(
   })
 );
 
+// Using only Local DB - I can't find free DB Hosting
 const db = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -52,34 +58,34 @@ app.post("/api/users/register", async (req, res) => {
   }
 
   try {
-    // Check if the email is already in use
-    const [rows] = await db.promise().query("SELECT * FROM users WHERE email = ?", [email]);
+    const [rows] = await db
+      .promise()
+      .query("SELECT * FROM users WHERE email = ?", [email]);
     if (rows.length > 0) {
       return res.status(400).json({ message: "Email is already in use" });
     }
 
-    // Hash the password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Insert the new user
     const query = `
       INSERT INTO users (first_name, last_name, email, password_hash, country, created_at)
       VALUES (?, ?, ?, ?, ?, NOW())
     `;
-    const [result] = await db.promise().query(query, [first_name, last_name, email, passwordHash, country]);
+    const [result] = await db
+      .promise()
+      .query(query, [first_name, last_name, email, passwordHash, country]);
 
     res.status(200).json({ message: "User registered successfully" });
   } catch (err) {
     console.error("Error registering user:", err.message);
-    console.error(err.stack); // More detailed error log with stack trace
+    console.error(err.stack);
     res.status(500).json({
       message: "Error registering user",
-      error: err.message,  // More detailed error message
-      stack: err.stack,    // Full error stack trace
+      error: err.message,
+      stack: err.stack,
     });
   }
 });
-
 
 // LOGIN
 app.post("/api/users/login", async (req, res) => {
