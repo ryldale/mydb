@@ -45,15 +45,15 @@ const db = mysql.createPool({
 // REGISTER
 app.post("/api/users/register", async (req, res) => {
   const { first_name, last_name, email, country, password } = req.body;
+
+  // Validate input
   if (!first_name || !last_name || !email || !country || !password) {
     return res.status(400).json({ message: "All fields are required" });
   }
 
   try {
     // Check if the email is already in use
-    const [rows] = await db
-      .promise()
-      .query("SELECT * FROM users WHERE email = ?", [email]);
+    const [rows] = await db.promise().query("SELECT * FROM users WHERE email = ?", [email]);
     if (rows.length > 0) {
       return res.status(400).json({ message: "Email is already in use" });
     }
@@ -66,16 +66,20 @@ app.post("/api/users/register", async (req, res) => {
       INSERT INTO users (first_name, last_name, email, password_hash, country, created_at)
       VALUES (?, ?, ?, ?, ?, NOW())
     `;
-    const [result] = await db
-      .promise()
-      .query(query, [first_name, last_name, email, passwordHash, country]);
+    const [result] = await db.promise().query(query, [first_name, last_name, email, passwordHash, country]);
 
     res.status(200).json({ message: "User registered successfully" });
   } catch (err) {
-    console.error("Error registering user:", err);
-    res.status(500).json({ message: "Error registering user" });
+    console.error("Error registering user:", err.message);
+    console.error(err.stack); // More detailed error log with stack trace
+    res.status(500).json({
+      message: "Error registering user",
+      error: err.message,  // More detailed error message
+      stack: err.stack,    // Full error stack trace
+    });
   }
 });
+
 
 // LOGIN
 app.post("/api/users/login", async (req, res) => {
