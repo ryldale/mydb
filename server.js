@@ -39,7 +39,7 @@ const db = mysql.createPool({
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  port: process.env.DB_PORT || 3306
+  port: process.env.DB_PORT || 3306,
 });
 
 // REGISTER
@@ -49,42 +49,32 @@ app.post("/api/users/register", async (req, res) => {
     return res.status(400).json({ message: "All fields are required" });
   }
 
-  const checkEmailQuery = "SELECT * FROM users WHERE email = ?";
-  db.execute(checkEmailQuery, [email], (err, results) => {
-    if (err) {
-      console.error("Error checking email:", err);
-      return res.status(500).json({ message: "Error checking email" });
-    }
-
-    if (results.length > 0) {
+  try {
+    // Check if the email is already in use
+    const [rows] = await db
+      .promise()
+      .query("SELECT * FROM users WHERE email = ?", [email]);
+    if (rows.length > 0) {
       return res.status(400).json({ message: "Email is already in use" });
     }
 
-    const saltRounds = 10;
-    bcrypt.hash(password, saltRounds, (err, passwordHash) => {
-      if (err) {
-        console.error("Error hashing password:", err);
-        return res.status(500).json({ message: "Error registering user" });
-      }
+    // Hash the password
+    const passwordHash = await bcrypt.hash(password, 10);
 
-      const query = `
-        INSERT INTO users (first_name, last_name, email, password_hash, country, created_at)
-        VALUES (?, ?, ?, ?, ?, NOW())
-      `;
+    // Insert the new user
+    const query = `
+      INSERT INTO users (first_name, last_name, email, password_hash, country, created_at)
+      VALUES (?, ?, ?, ?, ?, NOW())
+    `;
+    const [result] = await db
+      .promise()
+      .query(query, [first_name, last_name, email, passwordHash, country]);
 
-      db.execute(
-        query,
-        [first_name, last_name, email, passwordHash, country],
-        (err, results) => {
-          if (err) {
-            console.error("Error registering user:", err);
-            return res.status(500).json({ message: "Error registering user" });
-          }
-          res.status(200).json({ message: "User registered successfully" });
-        }
-      );
-    });
-  });
+    res.status(200).json({ message: "User registered successfully" });
+  } catch (err) {
+    console.error("Error registering user:", err);
+    res.status(500).json({ message: "Error registering user" });
+  }
 });
 
 // LOGIN
@@ -161,7 +151,6 @@ app.get("/api/countries", async (req, res) => {
 // Middleware to verify JWT and extract user ID
 const verifyToken = (req, res, next) => {
   const token = req.headers["authorization"]?.split(" ")[1];
-  
 
   if (!token) {
     return res.status(403).json({ message: "Token is required" });
