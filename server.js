@@ -14,7 +14,7 @@ app.use(express.json());
 
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: "https://food-recipes-self.vercel.app/",
     methods: ["GET", "POST", "DELETE", "PUT"],
     credentials: true,
   })
@@ -459,7 +459,7 @@ app.put("/api/users/data/update/:id", verifyToken, (req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT;
 app.listen(PORT, () => {
   console.log(`Server started on port ${PORT}`);
 });
