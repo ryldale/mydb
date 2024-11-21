@@ -14,7 +14,7 @@ app.use(express.json());
 
 app.use(
   cors({
-    origin: "https://food-recipes-self.vercel.app/",
+    origin: "https://food-recipes-self.vercel.app",
     methods: ["GET", "POST", "DELETE", "PUT"],
     credentials: true,
   })
@@ -29,7 +29,7 @@ app.use(
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       maxAge: 3600000,
-      sameSite: "Strict",
+      sameSite: "None",
     },
   })
 );
